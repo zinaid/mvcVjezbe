@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>TUTORIAL MVC</title>
+        <style>
+/* From extension vscode.github */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.vscode-dark img[src$=\#gh-light-mode-only],
+.vscode-light img[src$=\#gh-dark-mode-only] {
+	display: none;
+}
+
+/* From extension ms-toolsai.jupyter */
+/* These classnames are inherited from bootstrap, but are present in most notebook renderers */
+
+.alert {
+    width: auto;
+    padding: 1em;
+    margin-top: 1em;
+    margin-bottom: 1em;
+}
+.alert > *:last-child {
+    margin-bottom: 0;
+}
+#preview > .alert:last-child {
+    /* Prevent this being set to zero by the default notebook stylesheet */
+    padding-bottom: 1em;
+}
+
+.alert-success {
+    /* Note there is no suitable color available, so we just copy "info" */
+    background-color: var(--theme-info-background);
+    color: var(--theme-info-foreground);
+}
+.alert-info {
+    background-color: var(--theme-info-background);
+    color: var(--theme-info-foreground);
+}
+.alert-warning {
+    background-color: var(--theme-warning-background);
+    color: var(--theme-warning-foreground);
+}
+.alert-danger {
+    background-color: var(--theme-error-background);
+    color: var(--theme-error-foreground);
+}
+
+</style>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex/dist/katex.min.css">
+<link href="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.css" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item {
+    list-style-type: none;
+}
+
+.task-list-item-checkbox {
+    margin-left: -20px;
+    vertical-align: middle;
+    pointer-events: none;
+}
+</style>
+        
+    </head>
+    <body class="vscode-body vscode-light">
+        <h1 id="tutorial-mvc">TUTORIAL MVC</h1>
+<p>MVC is a famous structure paradigm for developing web applications. It is used by many web frameworks in many different programming languages. Some of the frameworks that use this architecture are Laravel and Django. In this tutorial we will structure app to have our own MVC framework.</p>
+<h2 id="folder-structure">FOLDER STRUCTURE</h2>
+<p>We will create these folders:</p>
+<ul>
+<li>app</li>
+<li>bootstrap</li>
+<li>config</li>
+<li>public</li>
+<li>routes</li>
+<li>views</li>
+</ul>
+<p>and these files:</p>
+<ul>
+<li>.htaccess</li>
+</ul>
+<p>In our public file we will have index.php and that is our starting point.</p>
+<h2 id="htaccess">.htaccess</h2>
+<p>The .htaccess file is an important file that controls high-level configuration of a website. On Apache web servers, .htaccess allows us to make changes in our website configuration without having to edit server configuration files.</p>
+<p>Apache is configured that all files named .htaccess are hidden. Commonly is placed in website's public_html folder.</p>
+<p>Use cases of .htaccess are these:</p>
+<ul>
+<li>Redirection for certain URLs</li>
+<li>Load custom error pages</li>
+<li>Forcing HTTPS</li>
+<li>Password protect certain directories</li>
+<li>Prevent hotlinking</li>
+</ul>
+<p>Create .htaccess file in root.</p>
+<pre><code>&lt;IfModule mod_rewrite.c&gt;
+    RewriteEngine On
+
+    # Stop processing if already in the /public directory
+    RewriteRule ^public/ - [L]
+
+    # Static resources if they exist
+    RewriteCond %{DOCUMENT_ROOT}/public/$1 -f
+    RewriteRule (.+) public/$1 [L]
+
+    # Route all other requests
+    RewriteRule (.*) public/index.php?route=$1 [L,QSA]
+&lt;/IfModule&gt;
+</code></pre>
+<p>With this setting we can filter all our traffic to public/index.php.</p>
+<h3 id="bootstraping">Bootstraping</h3>
+<p>Inside config folder create <code>app.php</code>.</p>
+<pre><code>&lt;?php
+define('APP_NAME', &quot;PHP MVC NTIP&quot;);
+define('APP_ROOT', dirname(dirname(__FILE__)));
+</code></pre>
+<p>Inside our public folder create <code>index.php</code> and include config\app.php.</p>
+<pre><code>&lt;?php 
+require_once '../config/app.php';
+</code></pre>
+<p>If everything is ok we can var_dump our APP_NAME eg. ```var_dump(APP_NAME);</p>
+<p>For the purpose of autoloading classes, we will be using composer. Composer is a tool for dependency management in PHP. It allows you to declare the libraries your project depends on and it will manage (install/update) them for you.</p>
+<h3 id="composerjson">composer.json</h3>
+<p>Inside root create composer.json file and paste this code:</p>
+<pre><code>{
+    &quot;name&quot;: &quot;zinaid/mvc-php&quot;,
+    &quot;description&quot;: &quot;Simple MVC framework with PHP&quot;,
+    &quot;autoload&quot;: {
+        &quot;psr-4&quot;: {
+            &quot;App\\&quot;: &quot;app/&quot;
+        }
+    }
+}
+</code></pre>
+<p>psr-4 auto-loading standard is a standard that maps a path to particular namespace. It also guesses this subfolders according to the namespace defined in it. In our case autoloader checks for any file that has a namespace starting with App in the app directory.</p>
+<p>Next create Controllers and Models folders in app.</p>
+<p>To install composer dependencies run <code>composer dump-autoload</code>. Include the autoload file in public/index.php.</p>
+<pre><code>require_once '../vendor/autoload.php';
+</code></pre>
+<h3 id="testing-bootstrap-work">TESTING BOOTSTRAP WORK</h3>
+<p>Inside Controllers create php file HomeController.php and create a class that just echoes some message.</p>
+<pre><code>&lt;?php
+namespace App\Controllers;
+
+class HomeController
+{
+    public function home(Request $request)
+    {
+        return &quot;Test&quot;;
+    }
+}
+</code></pre>
+<p>Now we can call this function in index.php.</p>
+<pre><code>echo App\Controllers\HomeController::home();
+</code></pre>
+<h3 id="routing">ROUTING</h3>
+<p>We will try to create routing like in some common frameworks. The aim is to have something like this:</p>
+<pre><code>&lt;?php
+
+use Core\Framework;
+
+$app = new Framework();
+
+$app::get('/', 'Controller', 'Method');
+
+
+$app-&gt;run();
+
+</code></pre>
+<p>First of all update composer.json:</p>
+<pre><code>{
+    &quot;name&quot;: &quot;zinaid/mvc-php&quot;,
+    &quot;description&quot;: &quot;Simple MVC framework with PHP&quot;,
+    &quot;autoload&quot;: {
+        &quot;psr-4&quot;: {
+            &quot;App\\&quot;: &quot;app/&quot;,
+            &quot;Core\\&quot;: &quot;bootstrap/&quot;
+        }
+    }
+}
+</code></pre>
+<p>We added the psr-4 route to load Core namespace files from the bootstrap folder. After changing composer.json we need to run <code>composer dump-autoload</code>.</p>
+<p>Next step is to create Router.php inside bootstrap folder.</p>
+<pre><code>&lt;?php
+namespace Core;
+
+trait Router
+{
+    private static $map;
+    public static function get($url, $class, $method)
+    {
+        self::cleanUrl($url);
+        self::cleanClass($class);
+        self::cleanMethod($method);
+
+        self::$map['get'][$url] = [
+            'class'=&gt;$class,
+            'method'=&gt;$method
+        ];
+    }
+
+    public static function post($url, $class, $method)
+    {
+        self::cleanUrl($url);
+        self::cleanClass($class);
+        self::cleanMethod($method);
+
+        self::$map['post'][$url] = [
+            'class'=&gt;$class,
+            'method'=&gt;$method
+        ];
+    }
+
+    private static function cleanUrl($url)
+    {
+
+    }
+
+    private static function cleanClass($class)
+    {
+
+    }
+
+    private static function cleanMethod($method)
+    {
+
+    }
+
+    public static function getMap(){
+        return self::$map;
+    }
+}
+</code></pre>
+<p>Inside this class we are going to map our routes. The first static property map will hold an array of all registered routes.</p>
+<p>Static methods get and post will take in the request URI, class and method and match it to their respective request method. Static function getMap will serve as a getter to fetch all values of the private static $map property.</p>
+<p>We will use antoher trait named UrlEngine.php.</p>
+<pre><code>&lt;?php
+namespace Core;
+
+trait UrlEngine
+{
+    public function method()
+    {
+        return strtolower($_SERVER['REQUEST_METHOD']);
+    }
+
+    public function path()
+    {
+        return $_SERVER['REQUEST_URI'];
+    }
+}
+</code></pre>
+<p>This file gets us a lower case value of the request method and current path.</p>
+<p>Then we create a file named Framework.php, also inside our bootstrap folder.</p>
+<pre><code>&lt;?php
+namespace Core;
+
+class Framework
+{
+    use Router, UrlEngine;
+
+    /**
+     * @throws \Exception
+     */
+    public function run()
+    {
+        //run the match function to get the class and method
+        $callable = $this-&gt;match($this-&gt;method(), $this-&gt;path());
+        if (!$callable){
+            throw new \Exception('Oops! you are lost', 404);
+        }
+        //call the class, pass the method
+        //add the default namespace to the controller
+        $class = &quot;App\\Controllers\\&quot;.$callable['class'];
+        if (!class_exists($class)){
+            throw new \Exception('Class does not exist', 500);
+        }
+
+        $method = $callable['method'];
+
+        if (!is_callable($class, $method)){
+            throw new \Exception(&quot;$method is not a valid method in class $callable[class]&quot;, 500);
+        }
+        $class = new $class();
+
+        //run the method
+        $class-&gt;$method();
+        return;
+    }
+
+    private function match($method, $url)
+    {
+        foreach (self::$map[$method] as $uri=&gt;$call){
+            //does the $url have a trailing slash? if yes, remove it
+            //make sure the only string present is not the slash
+            if (substr($url, -1) === '/' &amp;&amp; $uri != '/'){
+                //remove the slash
+                $url = substr($url, 0, -1);
+            }
+            //if our $uri does not contain a pre-slash, we add it
+            if ($url == $uri){
+                return $call;
+            }
+        }
+        return false;
+    }
+}
+</code></pre>
+<p>The class below has two methods. Method match and run.</p>
+<p>Method match checks the current request URI and mathes it with the $map array we have to return an array of the class and method or false.</p>
+<p>Method run gets the class and method from the match method, adds our default namespace to the class, checks if the class and method exists, then calls the method on the class.</p>
+<h3 id="first-controller">FIRST CONTROLLER</h3>
+<p>Let us create our first controller in Controllers named HomeController.php.</p>
+<pre><code>&lt;?php
+namespace App\Controllers;
+
+class HomeController
+{
+    public function home()
+    {
+        echo &quot;bootstrap working&quot;;
+    }
+}
+</code></pre>
+<p>In our routes file we will create web.php file.</p>
+<pre><code>&lt;?php
+
+use Core\Framework;
+
+$app = new Framework();
+
+$app::get('/', 'HomeController', 'home');
+$app::post('/', 'HomeController', 'home');
+$app-&gt;run();
+</code></pre>
+<p>If everything works it will display our message in HomeController method home().</p>
+<h3 id="view">VIEW</h3>
+<p>View is an important part of MVC. We will develop a view engine that will find and render our view files that are placed in view directory. We want to achieve something like this:</p>
+<pre><code>return view('home.index', compact('first', 'second'))
+or
+return view ('home.index', ['first', 'second'])
+</code></pre>
+<p>Next we create a View.php trait inside boostrap folder.</p>
+<pre><code>&lt;?php
+
+
+namespace Core;
+
+
+trait View
+{
+    /**
+     * @throws \Exception
+     */
+    public function render($view, $params = [])
+    {
+        $position = strpos($view, &quot;.&quot;);
+        if ($position){
+            $view = str_replace(&quot;.&quot;, &quot;/&quot;, $view);
+        }
+
+        if (is_readable(APP_ROOT.&quot;/views/$view.php&quot;))
+        {
+            return $this-&gt;generateView($view, $params);
+        }else{
+            throw new \Exception(&quot;404 PAGE NOT FOUND&quot;, 404);
+        }
+    }
+
+    /**
+     * @throws \Exception
+     */
+    private function generateView($view, $params)
+    {
+        foreach ($params as $key =&gt; $value){
+            $$key = $value;
+        }
+
+        ob_start();
+        require_once APP_ROOT.&quot;/views/$view.php&quot;;
+        echo ob_get_clean();
+        return true;
+    }
+}
+</code></pre>
+<p>This trait has methods render and generateView. The render view is called directly and generate function is used for output, after that we call ob_get_clean() to return the content of buffering and delete it.</p>
+<p>Inside boostrap we create another folder helpers and inside helpers a new file <code>app.php</code>. This PHP file will shorten long method calls for the framework.</p>
+<pre><code>&lt;?php
+$app = new \Core\Framework();
+/**
+ * @throws Exception
+ */
+function view($view, $params = [])
+{
+    global $app;
+    return $app-&gt;render($view, $params);
+}
+</code></pre>
+<p>We have assigned our core/Framework class a variable, and access it as a global in our functions. This way we have access to the view trait.</p>
+<p>We modify composer.json and tell him to autload this file anytime application runs.</p>
+<p>In the above code, we assigned our core (Framework) class a variable, and accessed it as a global in our functions, this way we have access to the view trait.</p>
+<p>Step 3: add this line of code to your composer.json, this is an instruction to autoload this file anytime the application is run.</p>
+<pre><code>{
+    &quot;name&quot;: &quot;emiracle/simple-mvc-framework-with-php&quot;,
+    &quot;description&quot;: &quot;Simple MVC framework with PHP&quot;,
+    &quot;autoload&quot;: {
+        &quot;psr-4&quot;: {
+            &quot;App\\&quot;: &quot;app/&quot;,
+            &quot;Core\\&quot;: &quot;bootstrap/&quot;
+        },
+        &quot;files&quot;: [&quot;bootstrap/helpers/app.php&quot;]
+    }
+}
+</code></pre>
+<p>Now run <code>composer dump-autoload</code>.</p>
+<p>Now we create a home directory inside our views folder and inside of it index.php file.</p>
+<pre><code>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;body&gt;
+
+&lt;h1&gt;My First Framework&lt;/h1&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<p>Now we will say to our HomeController to return the view.</p>
+<pre><code>&lt;?php
+namespace App\Controllers;
+
+class HomeController
+{
+    public function test()
+    {
+        return view('home.index');
+    }
+}
+</code></pre>
+<p>If everyhing works we should see content from index.php in views.</p>
+<h3 id="request-parsing">REQUEST PARSING</h3>
+<p>We will try to achieve this:</p>
+<pre><code>&lt;?php
+namespace App\Controllers;
+
+use Core\Request;
+
+class HomeController
+{
+    public function home(Request $request)
+    {
+        $string = &quot;My First Framework&quot;;
+        $test = $request-&gt;test;
+        return view('home.index', compact('string', 'test'));
+    }
+}
+</code></pre>
+<p>To achieve that we need to change line 13 in UrlEngine.php and replace it with:</p>
+<pre><code>&lt;?php
+namespace Core;
+
+trait UrlEngine
+{
+    public function method()
+    {
+        return strtolower($_SERVER['REQUEST_METHOD']);
+    }
+
+    public function path()
+    {
+        return strtok($_SERVER[&quot;REQUEST_URI&quot;], '?');
+    }
+}
+</code></pre>
+<p>We do that because we want to separate query string from the URL.</p>
+<p>Next we create class Request.php inside bootstrap folder.</p>
+<pre><code>&lt;?php
+namespace Core;
+
+use stdClass;
+
+class Request
+{
+    private $data;
+    use UrlEngine;
+    public function __construct()
+    {
+        $this-&gt;data = new stdClass;
+        $this-&gt;setData();
+    }
+
+    private function setData(){
+        foreach ($_REQUEST as $key =&gt; $value) {
+            if($this-&gt;method() === 'get'){
+                //this makes is dynamically available
+                $this-&gt;$key = filter_input(INPUT_GET, $key, FILTER_SANITIZE_SPECIAL_CHARS);
+                //this collects it
+                $this-&gt;data-&gt;$key = filter_input(INPUT_GET, $key, FILTER_SANITIZE_SPECIAL_CHARS);
+            }
+            elseif ($this-&gt;method() === 'post') {
+                foreach ($_POST as $key =&gt; $value) {
+                    $this-&gt;$key = filter_input(INPUT_POST, $key, FILTER_SANITIZE_SPECIAL_CHARS);
+                    $this-&gt;data-&gt;$key = filter_input(INPUT_POST, $key, FILTER_SANITIZE_SPECIAL_CHARS);
+                }
+            }else{
+                $this-&gt;$key = $value;
+                $this-&gt;data-&gt;$key = $value;
+            }
+        }
+    }
+
+    public function data($x = null){
+        return $x?$this-&gt;data-&gt;$x:$this-&gt;data;
+    }
+}
+</code></pre>
+<p>We use stdClass, because we wish to pass data as objects. Construct initializes data as a new object and calls the set data method.</p>
+<p>setData method loops through all post and get request, sanitize it and populates data object.</p>
+<p>Now we would have to make modifications to our Framework.php file to accommodate the request class when instantiating a method.</p>
+<pre><code>&lt;?php
+namespace Core;
+
+
+class Framework
+{
+    use Router, UrlEngine, View;
+    private $request;
+
+    public function __construct(){
+        $this-&gt;request = new Request();
+    }
+    /**
+     * @throws \Exception
+     */
+    public function run()
+    {
+        //run the match function to get the class and method
+        $callable = $this-&gt;match($this-&gt;method(), $this-&gt;path());
+        if (!$callable){
+            throw new \Exception('Oops! you are lost', 404);
+        }
+        //call the class, pass the method
+        //add the default namespace to the controller
+        $class = &quot;App\\Controllers\\&quot;.$callable['class'];
+        if (!class_exists($class)){
+            throw new \Exception('Class does not exist', 500);
+        }
+
+        $method = $callable['method'];
+
+        if (!is_callable($class, $method)){
+            throw new \Exception(&quot;$method is not a valid method in class $callable[class]&quot;, 500);
+        }
+        $class = new $class();
+
+        //run the method
+        $class-&gt;$method($this-&gt;request);
+        return;
+    }
+
+    private function match($method, $url)
+    {
+        foreach (self::$map[$method] as $uri=&gt;$call){
+            //does the $url have a trailing slash? if yes, remove it
+            //make sure the only string present is not the slash
+            if (substr($url, -1) === '/' &amp;&amp; $uri != '/'){
+                //remove the slash
+                $url = substr($url, 0, -1);
+            }
+            //if our $uri does not contain a pre-slash, we add it
+            if ($url == $uri){
+                return $call;
+            }
+        }
+        return false;
+    }
+}
+</code></pre>
+<p>We instantiated the Request class in a construct in our Framework.php file and also passed the instantiated request to the method automatically while calling the method on line 38. The reason is to prevent the too few argument supplied error that PHP will throw.</p>
+<p>With this we have created simple MVC structure. We will use this structure to make CRUD system. Next steps are to add model components and all CRUD operations over some model. We will be using PDO connection to MySQL database.</p>
+
+        <script async src="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.js"></script>
+        
+    </body>
+    </html>
